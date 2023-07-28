@@ -1,4 +1,13 @@
-# Task Description
+# Streams
+
+A intermediate level task for practicing streams.
+
+Estimated time to complete the task - 2h.
+
+The task requires .NET 6 SDK installed.
+
+
+## Task Description
 
 - Add implementations to static methods of the class [StreamsExtension](/Streams/StreamsExtension.cs). 
     - ByteCopyWithFileStream
