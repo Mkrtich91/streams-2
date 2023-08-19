@@ -1,6 +1,10 @@
-using System;
+﻿using System;
+using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Streams
 {
@@ -21,7 +25,24 @@ namespace Streams
         {
             InputValidation(sourcePath, destinationPath);
 
-            throw new NotImplementedException();
+            int bytesCopied = 0;
+
+#pragma warning disable CS8604
+            using (FileStream sourceStream = new FileStream(sourcePath, FileMode.Open))
+            using (FileStream destinationStream = new FileStream(destinationPath, FileMode.Create))
+            {
+                byte[] buffer = new byte[4096];
+
+                int bytesRead;
+                while ((bytesRead = sourceStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    destinationStream.Write(buffer, 0, bytesRead);
+                    bytesCopied += bytesRead;
+                }
+            }
+#pragma warning restore CS8604
+
+            return bytesCopied;
         }
 
         /// <summary>
@@ -36,18 +57,26 @@ namespace Streams
         {
             InputValidation(sourcePath, destinationPath);
 
-            // TODO: step 1. Use StreamReader to read entire file in string
+            byte[] buffer = new byte[1024];
+            int bytesRead;
 
-            // TODO: step 2. Create byte array on base string content - use  System.Text.Encoding class
+#pragma warning disable CS8604
+            using (FileStream sourceStream = new FileStream(sourcePath, FileMode.Open))
+            {
+                using MemoryStream memoryStream = new MemoryStream();
+                while ((bytesRead = sourceStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    memoryStream.Write(buffer, 0, bytesRead);
+                }
 
-            // TODO: step 3. Use MemoryStream instance to read from byte array (from step 2)
+                byte[] bytes = memoryStream.ToArray();
 
-            // TODO: step 4. Use MemoryStream instance (from step 3) to write it content in new byte array
+                using FileStream destinationStream = new FileStream(destinationPath, FileMode.Create);
+                destinationStream.Write(bytes, 0, bytes.Length);
+            }
+#pragma warning restore CS8604
 
-            // TODO: step 5. Use Encoding class instance (from step 2) to create char array on byte array content
-
-            // TODO: step 6. Use StreamWriter here to write char array content in new file
-            throw new NotImplementedException();
+            return buffer.Length;
         }
 
         /// <summary>
@@ -62,7 +91,24 @@ namespace Streams
         {
             InputValidation(sourcePath, destinationPath);
 
-            throw new NotImplementedException();
+            const int bufferSize = 4096;
+
+#pragma warning disable CS8604
+            using (FileStream sourceStream = new FileStream(sourcePath, FileMode.Open))
+            {
+                using FileStream destinationStream = new FileStream(destinationPath, FileMode.Create);
+                byte[] buffer = new byte[bufferSize];
+                int bytesRead;
+
+                while ((bytesRead = sourceStream.Read(buffer, 0, bufferSize)) > 0)
+                {
+                    destinationStream.Write(buffer, 0, bytesRead);
+                }
+            }
+#pragma warning restore CS8604
+
+            FileInfo destinationFileInfo = new FileInfo(destinationPath);
+            return (int)destinationFileInfo.Length;
         }
 
         /// <summary>
@@ -77,7 +123,28 @@ namespace Streams
         {
             InputValidation(sourcePath, destinationPath);
 
-            throw new NotImplementedException();
+            const int bufferSize = 4096;
+
+#pragma warning disable CS8604
+            using (FileStream sourceStream = new FileStream(sourcePath, FileMode.Open))
+            {
+                using MemoryStream memoryStream = new MemoryStream();
+                byte[] buffer = new byte[bufferSize];
+                int bytesRead;
+
+                while ((bytesRead = sourceStream.Read(buffer, 0, bufferSize)) > 0)
+                {
+                    memoryStream.Write(buffer, 0, bytesRead);
+                }
+
+                using FileStream destinationStream = new FileStream(destinationPath, FileMode.Create);
+                memoryStream.Seek(0, SeekOrigin.Begin);
+                memoryStream.CopyTo(destinationStream);
+            }
+#pragma warning restore CS8604
+
+            FileInfo destinationFileInfo = new FileInfo(destinationPath);
+            return (int)destinationFileInfo.Length;
         }
 
         /// <summary>
@@ -92,7 +159,23 @@ namespace Streams
         {
             InputValidation(sourcePath, destinationPath);
 
-            throw new NotImplementedException();
+            const int bufferSize = 4096; // Choose an appropriate buffer size
+
+            using (FileStream sourceStream = new FileStream(sourcePath, FileMode.Open))
+            {
+                using FileStream destinationStream = new FileStream(destinationPath, FileMode.Create);
+                using BufferedStream bufferedSourceStream = new BufferedStream(sourceStream, bufferSize);
+                byte[] buffer = new byte[bufferSize];
+                int bytesRead;
+
+                while ((bytesRead = bufferedSourceStream.Read(buffer, 0, bufferSize)) > 0)
+                {
+                    destinationStream.Write(buffer, 0, bytesRead);
+                }
+            }
+
+            FileInfo destinationFileInfo = new FileInfo(destinationPath);
+            return (int)destinationFileInfo.Length;
         }
 
         /// <summary>
@@ -107,12 +190,34 @@ namespace Streams
         {
             InputValidation(sourcePath, destinationPath);
 
-            throw new NotImplementedException();
+            InputValidation(sourcePath, destinationPath);
+
+            const int bufferSize = 4096;
+
+            using FileStream sourceStream = new FileStream(sourcePath, FileMode.Open);
+            using MemoryStream memoryStream = new MemoryStream();
+            using BufferedStream bufferedMemoryStream = new BufferedStream(memoryStream, bufferSize);
+            byte[] buffer = new byte[bufferSize];
+            int bytesRead;
+
+            while ((bytesRead = sourceStream.Read(buffer, 0, bufferSize)) > 0)
+            {
+                bufferedMemoryStream.Write(buffer, 0, bytesRead);
+            }
+
+            bufferedMemoryStream.Seek(0, SeekOrigin.Begin);
+
+            using (FileStream destinationStream = new FileStream(destinationPath, FileMode.Create))
+            {
+                bufferedMemoryStream.CopyTo(destinationStream);
+            }
+
+            return (int)memoryStream.Length;
         }
 
         /// <summary>
         /// Implements the logic of line-by-line copying of the contents of the source text file
-        /// using FileStream and classes-adapters  StreamReader/StreamWriter
+        /// using FileStream and classes-adapters  StreamReader/StreamWriter.
         /// </summary>
         /// <param name="sourcePath">Path to source file.</param>
         /// <param name="destinationPath">Path to destination file.</param>
@@ -122,8 +227,27 @@ namespace Streams
         public static int LineCopy(string? sourcePath, string? destinationPath)
         {
             InputValidation(sourcePath, destinationPath);
+            Encoding encoding = Encoding.UTF8;
+            using FileStream sourceStream = new FileStream(sourcePath!, FileMode.Open, FileAccess.Read);
+            using StreamReader reader = new StreamReader(sourceStream);
+            using FileStream destinationStream = new FileStream(destinationPath!, FileMode.Create, FileAccess.Write);
+            using StreamWriter writer = new StreamWriter(destinationStream, encoding);
+            int recordedLines = 0;
 
-            throw new NotImplementedException();
+            string? line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                writer.Write(line);
+
+                if (reader.Peek() >= 0)
+                {
+                    writer.WriteLine();
+                }
+
+                recordedLines++;
+            }
+
+            return recordedLines;
         }
 
         /// <summary>
@@ -138,7 +262,16 @@ namespace Streams
         {
             InputValidation(sourcePath);
 
-            throw new NotImplementedException();
+            InputValidation(sourcePath, encoding);
+
+#pragma warning disable CS8604
+            Encoding selectedEncoding = Encoding.GetEncoding(encoding);
+#pragma warning restore CS8604
+#pragma warning disable CS8604
+            using FileStream sourceStream = new FileStream(sourcePath, FileMode.Open);
+            using StreamReader reader = new StreamReader(sourceStream, selectedEncoding);
+            return reader.ReadToEnd();
+#pragma warning restore CS8604
         }
 
         /// <summary>
@@ -153,7 +286,25 @@ namespace Streams
         {
             InputValidation(sourcePath);
 
-            throw new NotImplementedException();
+#pragma warning disable CS8604
+            Stream inputStream = new FileStream(sourcePath, FileMode.Open);
+#pragma warning restore CS8604
+
+#pragma warning disable IDE0066
+            switch (method)
+            {
+                case DecompressionMethods.Deflate:
+                    return new DeflateStream(inputStream, CompressionMode.Decompress);
+                case DecompressionMethods.GZip:
+                    return new GZipStream(inputStream, CompressionMode.Decompress);
+                case DecompressionMethods.None:
+                    return inputStream;
+                case DecompressionMethods.Brotli:
+                    return new BrotliStream(inputStream, CompressionMode.Decompress);
+                default:
+                    throw new ArgumentException("Invalid compression method specified.");
+            }
+#pragma warning restore IDE0066
         }
 
         /// <summary>
@@ -166,7 +317,26 @@ namespace Streams
         /// <returns>Hash.</returns>
         public static string CalculateHash(this Stream? stream, string? hashAlgorithmName)
         {
-            throw new NotImplementedException();
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream), "Source stream cannot be null.");
+            }
+
+            if (string.IsNullOrEmpty(hashAlgorithmName))
+            {
+                throw new ArgumentException("Hash algorithm name cannot be null or empty.", nameof(hashAlgorithmName));
+            }
+
+            using HashAlgorithm hashAlgorithm = HashAlgorithm.Create(hashAlgorithmName) ?? throw new ArgumentException("Unsupported hash algorithm.", nameof(hashAlgorithmName));
+            byte[] hashBytes = hashAlgorithm.ComputeHash(stream);
+            StringBuilder hashBuilder = new StringBuilder();
+
+            foreach (byte b in hashBytes)
+            {
+                hashBuilder.Append(b.ToString("X2", CultureInfo.InvariantCulture));
+            }
+
+            return hashBuilder.ToString();
         }
 
         private static void InputValidation(string? sourcePath, string? destinationPath)
